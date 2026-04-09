@@ -13,7 +13,7 @@ It is built with PySide6 and focuses on practical mastering workflows:
 
 Download the latest Windows package from the GitHub Releases page:
 
-`https://github.com/Shudufhadzo/music_mastery/releases/latest`
+[https://github.com/Shudufhadzo/music_mastery/releases/latest](https://github.com/Shudufhadzo/music_mastery/releases/latest)
 
 Asset name:
 
@@ -23,7 +23,7 @@ Inside that zip you will find `Music Mastery.exe` and the runtime files it needs
 
 ## Windows Install
 
-1. Download `downloads/Music-Mastery-win64.zip` from the repository.
+1. Download `Music-Mastery-win64.zip` from the latest GitHub release.
 2. Extract the zip to a normal folder such as `C:\Music Mastery`.
 3. Open the extracted folder.
 4. Run `Music Mastery.exe`.
