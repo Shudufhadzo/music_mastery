@@ -1,0 +1,15 @@
+.pytest_cache/
+.venv/
+build/
+build-pyinstaller/
+release/
+artifacts/
+downloads/
+src/mastery_native/__pycache__/
+tests/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+Thumbs.db
+Desktop.ini
