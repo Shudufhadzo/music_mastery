@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from mastery_native.engine import MasteringControls
 from mastery_native.live_audio import (
@@ -125,6 +126,83 @@ def test_apply_live_mastering_keeps_getting_louder_above_three_db_with_peak_safe
 
     assert measure_audio_level_db(heavy_boost) > measure_audio_level_db(moderate_boost) + 0.75
     assert np.max(np.abs(heavy_boost)) <= 0.99
+
+
+@pytest.mark.parametrize(
+    ("attribute", "value", "minimum_change"),
+    [
+        ("clarity_percent", 100, 0.08),
+        ("bass_percent", 100, 0.20),
+        ("treble_percent", 100, 0.06),
+        ("punch_percent", 100, 0.12),
+        ("stereo_width_percent", 100, 0.12),
+        ("low_cut_hz", 80, 0.20),
+        ("high_cut_hz", 12000, 0.06),
+    ],
+)
+def test_apply_live_mastering_main_dials_change_audio_at_strong_settings(attribute, value, minimum_change):
+    timeline = np.linspace(0, 0.5, int(44100 * 0.5), endpoint=False)
+    audio = np.column_stack(
+        [
+            0.58 * np.sin(2 * np.pi * 80 * timeline)
+            + 0.22 * np.sin(2 * np.pi * 220 * timeline)
+            + 0.12 * np.sin(2 * np.pi * 2500 * timeline)
+            + 0.08 * np.sin(2 * np.pi * 7000 * timeline),
+            0.54 * np.sin(2 * np.pi * 95 * timeline)
+            + 0.20 * np.sin(2 * np.pi * 330 * timeline)
+            + 0.10 * np.sin(2 * np.pi * 3200 * timeline)
+            + 0.07 * np.sin(2 * np.pi * 8500 * timeline),
+        ]
+    ).astype(np.float32)
+    source_level = measure_audio_level_db(audio)
+
+    neutral = MasteringControls(target_lufs=source_level, true_peak_limiter=True, auto_eq=False)
+    boosted = MasteringControls(target_lufs=source_level, true_peak_limiter=True, auto_eq=False)
+    setattr(boosted, attribute, value)
+
+    neutral_output = apply_live_mastering(audio, neutral, source_level_db=source_level)
+    boosted_output = apply_live_mastering(audio, boosted, source_level_db=source_level)
+
+    assert np.max(np.abs(boosted_output - neutral_output)) >= minimum_change
+    assert np.max(np.abs(boosted_output)) <= 0.99
+
+
+def test_apply_live_mastering_target_loudness_boost_increases_output_level():
+    audio = _stereo_test_tone()
+    source_level = measure_audio_level_db(audio)
+
+    neutral = apply_live_mastering(
+        audio,
+        MasteringControls(target_lufs=source_level, true_peak_limiter=True, auto_eq=False),
+        source_level_db=source_level,
+    )
+    louder = apply_live_mastering(
+        audio,
+        MasteringControls(target_lufs=-8.0, true_peak_limiter=True, auto_eq=False),
+        source_level_db=source_level,
+    )
+
+    assert measure_audio_level_db(louder) > measure_audio_level_db(neutral) + 1.0
+    assert np.max(np.abs(louder)) <= 0.99
+
+
+def test_apply_live_mastering_auto_eq_toggle_changes_audio():
+    audio = _stereo_test_tone()
+    source_level = measure_audio_level_db(audio)
+
+    neutral = apply_live_mastering(
+        audio,
+        MasteringControls(target_lufs=source_level, auto_eq=False, true_peak_limiter=True),
+        source_level_db=source_level,
+    )
+    auto_eq = apply_live_mastering(
+        audio,
+        MasteringControls(target_lufs=source_level, auto_eq=True, true_peak_limiter=True),
+        source_level_db=source_level,
+    )
+
+    assert np.max(np.abs(auto_eq - neutral)) >= 0.02
+    assert np.max(np.abs(auto_eq)) <= 0.99
 
 
 def test_build_waveform_peaks_returns_requested_number_of_points():
