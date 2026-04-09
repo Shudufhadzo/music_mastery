@@ -193,9 +193,7 @@ def apply_live_mastering(
         processed = processed * (10.0 ** (controls.gain_db / 20.0))
 
     if controls.true_peak_limiter:
-        peak = float(np.max(np.abs(processed)))
-        if peak > 0.98:
-            processed = processed * (0.98 / peak)
+        processed = _apply_true_peak_limiter(processed)
     else:
         processed = np.clip(processed, -1.0, 1.0)
 
@@ -285,6 +283,31 @@ def _match_target_level(audio: np.ndarray, target_db: float, source_level_db: fl
     gain_db = target_db - measured_db
     gain = math.pow(10.0, gain_db / 20.0)
     return (audio * gain).astype(np.float32)
+
+
+def _apply_true_peak_limiter(
+    audio: np.ndarray,
+    *,
+    ceiling: float = 0.98,
+    knee_start: float = 0.80,
+) -> np.ndarray:
+    magnitude = np.abs(audio)
+    threshold = ceiling * knee_start
+    if float(np.max(magnitude)) <= threshold:
+        return audio
+
+    limited = np.array(audio, dtype=np.float32, copy=True)
+    over_threshold = magnitude > threshold
+    if np.any(over_threshold):
+        excess = magnitude[over_threshold] - threshold
+        knee_width = max(1e-6, ceiling - threshold)
+        compressed = threshold + knee_width * np.tanh(excess / knee_width)
+        limited[over_threshold] = np.sign(audio[over_threshold]) * compressed
+
+    peak = float(np.max(np.abs(limited)))
+    if peak > ceiling:
+        limited *= ceiling / peak
+    return limited
 
 
 def _apply_punch(audio: np.ndarray, percent: int) -> np.ndarray:

@@ -80,6 +80,53 @@ def test_apply_live_mastering_uses_gain_and_high_cut_controls():
     assert np.max(np.abs(processed)) <= 0.99
 
 
+def test_apply_live_mastering_keeps_getting_louder_above_three_db_with_peak_safety():
+    timeline = np.linspace(0, 0.4, int(44100 * 0.4), endpoint=False)
+    audio = np.column_stack(
+        [
+            0.7 * np.sin(2 * np.pi * 220 * timeline),
+            0.7 * np.sin(2 * np.pi * 330 * timeline),
+        ]
+    ).astype(np.float32)
+    source_level = measure_audio_level_db(audio)
+
+    moderate_boost = apply_live_mastering(
+        audio,
+        MasteringControls(
+            target_lufs=source_level,
+            gain_db=3.0,
+            clarity_percent=50,
+            bass_percent=50,
+            treble_percent=50,
+            punch_percent=50,
+            stereo_width_percent=50,
+            low_cut_hz=20,
+            auto_eq=False,
+            true_peak_limiter=True,
+        ),
+        source_level_db=source_level,
+    )
+    heavy_boost = apply_live_mastering(
+        audio,
+        MasteringControls(
+            target_lufs=source_level,
+            gain_db=9.0,
+            clarity_percent=50,
+            bass_percent=50,
+            treble_percent=50,
+            punch_percent=50,
+            stereo_width_percent=50,
+            low_cut_hz=20,
+            auto_eq=False,
+            true_peak_limiter=True,
+        ),
+        source_level_db=source_level,
+    )
+
+    assert measure_audio_level_db(heavy_boost) > measure_audio_level_db(moderate_boost) + 0.75
+    assert np.max(np.abs(heavy_boost)) <= 0.99
+
+
 def test_build_waveform_peaks_returns_requested_number_of_points():
     audio = _stereo_test_tone()
 
