@@ -5,11 +5,17 @@ build-pyinstaller/
 release/
 artifacts/
 downloads/
+macOS/.build/
+macOS/.swiftpm/
+macOS/release/
+!macOS/downloads/
+!macOS/downloads/*.zip
 src/mastery_native/__pycache__/
 tests/__pycache__/
 *.pyc
 *.pyo
 *.pyd
 *.log
+.DS_Store
 Thumbs.db
 Desktop.ini
